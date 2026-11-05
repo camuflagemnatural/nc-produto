@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Checkout · Natural Camouflage</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/nc-core/css/core.css">
+<script src="/nc-core/js/core.js"></script><script src="https://sdk.mercadopago.com/js/v2"></script></head><body>
+<main>
+<style>.cw{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:24px;align-items:start}.bx{padding:22px;display:grid;gap:14px}.bx h2{font-size:16px}.ln{display:flex;gap:12px;align-items:center;font-size:13px}.ln img{width:44px;height:62px;object-fit:contain;background:#f7f7f9;border-radius:8px}.ln span{flex:1}.ln small{color:var(--mut)}.tot{border-top:1px solid var(--line);padding-top:12px;display:grid;gap:4px;color:var(--mut);font-size:14px}.tot div{display:flex;justify-content:space-between}.tot .t{color:var(--bone);font:800 20px Unbounded;margin-top:6px}.tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:rgba(0,0,0,.35);padding:5px;border-radius:14px}.tabs button{padding:11px;border:0;border-radius:10px;background:none;color:var(--mut);font:700 13px 'DM Sans';cursor:pointer}.tabs button[aria-selected=true]{background:var(--bone);color:var(--ink)}.pix{text-align:center}.pix img{width:210px;max-width:100%;background:#fff;padding:8px;border-radius:14px;margin:0 auto 10px}.pix code{display:block;word-break:break-all;font-size:11px;color:var(--mut);margin:10px 0}@media(max-width:860px){.cw{grid-template-columns:1fr}}</style>
+<h1 class="ttl">Finalizar compra</h1><p class="sub">Pagamento processado com segurança pelo Mercado Pago.</p><div id="app"></div>
+</main>
+<script>
+const {P,$,$$,brl,esc,url,cart,store,orders,shipFor,totals,API,R,PIX_DISCOUNT}=NC;
+let method='pix',mp=null,brick=null,timer=null,orderId=null,lastShip=null;
+const saved=store.get('customer',{});
+const mask=(el,fn)=>el.addEventListener('input',()=>{el.value=fn(el.value.replace(/\D/g,''))});
+function build(){
+ if(!cart.count()){$('#app').innerHTML=`<div class="empty">Seu carrinho está vazio.<br><a class="btn" href="${R.categorias}">Ver coleção</a></div>`;return}
+ $('#app').innerHTML=`<div class="cw"><form id="fm" class="card bx" novalidate><h2>Seus dados</h2>
+ <div class="f"><div class="w"><label for="nm">Nome completo</label><input id="nm" autocomplete="name" value="${esc(saved.nome||'')}"></div><div><label for="em">E-mail</label><input id="em" type="email" autocomplete="email" value="${esc(saved.email||'')}"></div><div><label for="cp">CPF</label><input id="cp" inputmode="numeric" maxlength="14" autocomplete="off"></div></div>
+ <h2>Entrega</h2><div class="f"><div><label for="ce">CEP</label><input id="ce" inputmode="numeric" maxlength="9" autocomplete="postal-code" value="${esc(saved.cep||store.get('cep',''))}"></div><div><label for="nu">Número</label><input id="nu" value="${esc(saved.numero||'')}"></div><div class="w"><label for="rua">Endereço</label><input id="rua" autocomplete="street-address" value="${esc(saved.rua||'')}"></div><div><label for="co">Complemento</label><input id="co" value="${esc(saved.complemento||'')}"></div><div><label for="ba">Bairro</label><input id="ba" value="${esc(saved.bairro||'')}"></div><div><label for="ci">Cidade</label><input id="ci" value="${esc(saved.cidade||'')}"></div><div><label for="uf">UF</label><input id="uf" maxlength="2" style="text-transform:uppercase" value="${esc(saved.uf||'')}"></div></div>
+ <h2>Pagamento</h2><div class="tabs" role="tablist"><button type="button" role="tab" aria-selected="true" data-m="pix">Pix (5% off)</button><button type="button" role="tab" aria-selected="false" data-m="card">Cartão</button></div>
+ <div id="mc" hidden><div id="brickBox"></div></div>
+ <div id="mp" class="pix" hidden><img id="qr" alt="QR Code Pix" hidden><code id="pc"></code><button type="button" class="btn sec" id="cpb" hidden>Copiar código Pix</button></div>
+ <div class="err" id="er" role="alert"></div><button class="btn full" id="pay" type="submit">Pagar</button></form>
+ <aside class="card bx"><h2>Seu pedido</h2><div id="ls" style="display:grid;gap:10px"></div><div class="tot" id="tt"></div><a class="btn sec full" href="${R.carrinho}">Editar carrinho</a></aside></div>`;
+ mask($('#cp'),v=>v.slice(0,11).replace(/(\d{3})(\d{3})?(\d{3})?(\d{2})?/,(m,a,b,c,d)=>a+(b?'.'+b:'')+(c?'.'+c:'')+(d?'-'+d:'')));
+ $('#ce').oninput=async e=>{const v=e.target.value.replace(/\D/g,'').slice(0,8);e.target.value=v.length>5?v.slice(0,5)+'-'+v.slice(5):v;store.set('cep',e.target.value);paint();
+  if(v.length===8){try{const r=await fetch(`https://viacep.com.br/ws/${v}/json/`).then(r=>r.json());if(!r.erro){$('#rua').value=r.logradouro||$('#rua').value;$('#ba').value=r.bairro||'';$('#ci').value=r.localidade||'';$('#uf').value=r.uf||'';$('#nu').focus()}}catch{}}};
+ $$('.tabs button').forEach(b=>b.onclick=()=>{method=b.dataset.m;$$('.tabs button').forEach(o=>o.setAttribute('aria-selected',o===b));paint();if(method==='card')initCard()});
+ $('#cpb').onclick=async()=>{try{await navigator.clipboard.writeText($('#pc').textContent);$('#cpb').textContent='Código copiado!';setTimeout(()=>$('#cpb').textContent='Copiar código Pix',1600)}catch{$('#er').textContent='Selecione e copie o código manualmente.'}};
+ $('#fm').onsubmit=async e=>{e.preventDefault();$('#er').textContent='';if(method!=='pix'||!valid())return;
+  const b=$('#pay');b.disabled=true;b.textContent='Gerando Pix…';
+  try{const r=await createPayment({items:cart.all(),method:'pix',...form()});
+   if(!r.payment?.pixCode)throw new Error('O Mercado Pago não retornou um código Pix válido.');
+   $('#mp').hidden=false;$('#pc').textContent=r.payment.pixCode;$('#cpb').hidden=false;
+   if(r.payment.qrCode){$('#qr').src='data:image/png;base64,'+r.payment.qrCode;$('#qr').hidden=false}
+   b.textContent='Aguardando confirmação do Pix';$('#er').style.color='var(--mut)';$('#er').textContent='Pague pelo QR Code ou copia-e-cola. Esta página confirma sozinha quando o pagamento cair.';
+   startPoll(r.orderId,r.totalCents,'Pix')}catch(x){$('#er').style.color='';$('#er').textContent=x.message;b.disabled=false;b.textContent='Pagar'}};
+ paint();}
+function form(){return{address:{cep:$('#ce').value,rua:$('#rua').value,numero:$('#nu').value,complemento:$('#co').value,bairro:$('#ba').value,cidade:$('#ci').value,uf:$('#uf').value},customer:{nome:$('#nm').value,email:$('#em').value,cpf:$('#cp').value}}}
+function valid(){const er=$('#er');er.style.color='';const f=form();
+ if(shipFor(f.address.cep,cart.subtotal())==null||!f.address.rua.trim()||!f.address.numero.trim()||!f.address.cidade.trim()||f.address.uf.trim().length<2){er.textContent='Informe o endereço de entrega completo, com CEP.';return false}
+ if(!f.customer.nome.trim()||!/^\S+@\S+\.\S+$/.test(f.customer.email)||f.customer.cpf.replace(/\D/g,'').length!==11){er.textContent='Preencha nome, e-mail válido e CPF completo.';return false}
+ return true}
+function paint(){const T=totals(method,$('#ce')?.value||'');
+ $('#ls').innerHTML=cart.all().map(l=>`<div class="ln"><img src="${P[l.i].imgs[0]}" alt=""><span>${esc(P[l.i].name)}<br><small>Tam. ${l.s} · ${l.q}× ${brl(P[l.i].price)}</small></span></div>`).join('');
+ $('#tt').innerHTML=`<div><span>Subtotal</span><span>${brl(T.sub)}</span></div><div><span>Frete</span><span>${T.fr==null?'Informe o CEP':T.fr?brl(T.fr):'Grátis'}</span></div>${T.d?`<div><span>Desconto Pix (5%)</span><span>− ${brl(T.d)}</span></div>`:''}<div class="t"><span>Total</span><span>${brl(T.t)}</span></div>`;
+ $('#mc').hidden=method!=='card';if(!orderId)$('#mp').hidden=method!=='pix'||$('#pc').textContent==='';
+ $('#pay').style.display=method==='card'?'none':'block';if(!orderId)$('#pay').textContent=T.t?'Pagar '+brl(T.t):'Pagar';
+ if(method==='card'&&brick&&T.fr!==lastShip){initCard()}}
+async function createPayment(o){const r=await fetch(API+'/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o)});
+ const d=await r.json().catch(()=>({error:'Resposta inválida do servidor'}));if(!r.ok)throw new Error(d.error||'Falha ao iniciar pagamento');return d}
+async function initCard(){
+ if(!window.MercadoPago){$('#er').textContent='SDK do Mercado Pago não carregou.';return}
+ try{if(brick){try{await brick.unmount()}catch{}brick=null}
+  const T=totals('card',$('#ce').value);lastShip=T.fr;
+  if(!mp){const c=await fetch(API+'/api/config').then(r=>{if(!r.ok)throw new Error('Configure MERCADOPAGO_PUBLIC_KEY no Render.');return r.json()});mp=new MercadoPago(c.publicKey,{locale:'pt-BR'})}
+  brick=await mp.bricks().create('cardPayment','brickBox',{initialization:{amount:Math.max(1,T.t/100),payer:{email:$('#em').value||''}},
+   callbacks:{onReady(){},onError(e){console.error(e);$('#er').textContent='Não foi possível carregar o formulário de cartão.'},
+    async onSubmit(data){$('#er').textContent='';if(!valid())throw new Error('invalid');
+     const r=await createPayment({items:cart.all(),method:'card',...form(),cardPayment:data});
+     if(r.status==='approved'){finish(r.orderId,r.totalCents,'Cartão')}else{$('#er').style.color='var(--mut)';$('#er').textContent='Pagamento em análise ('+(r.statusDetail||r.status)+'). Aguarde a confirmação.';startPoll(r.orderId,r.totalCents,'Cartão')}return r}}})
+ }catch(x){$('#er').textContent=x.message||'Erro ao carregar o cartão.'}}
+function record(id,total,m){orderId=id;const f=form();
+ orders.save({id,total,method:m,date:new Date().toISOString(),items:cart.all()});
+ store.set('customer',{...f.customer,nome:f.customer.nome,email:f.customer.email,...f.address,cpf:undefined})}
+function startPoll(id,total,m){record(id,total,m);clearInterval(timer);timer=setInterval(poll,5000);poll()}
+async function poll(){try{const r=await fetch(`${API}/api/orders/${encodeURIComponent(orderId)}/status`);if(!r.ok)return;const d=await r.json();
+ if(d.approved||d.status==='approved'){finish(orderId)}
+ else if(['rejected','cancelled','refunded','charged_back'].includes(d.status)){clearInterval(timer);$('#er').style.color='';$('#er').textContent='O pagamento não foi aprovado ('+d.status+'). Você pode tentar novamente.';orderId=null;$('#pay').disabled=false;paint()}}catch{}}
+function finish(id){clearInterval(timer);cart.clear();location.href=url('confirmacao',{pedido:id})}
+build();
+</script>
+</body></html>

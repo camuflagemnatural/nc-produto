@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Institucional · Natural Camouflage</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/nc-core/css/core.css">
+<script src="/nc-core/js/core.js"></script></head><body>
+<main>
+<style>.in{display:grid;grid-template-columns:200px minmax(0,1fr);gap:28px}.in nav{display:grid;gap:4px;align-content:start}.in nav a{padding:9px 12px;border-radius:10px;color:var(--mut);font-weight:700;font-size:14px}.in nav a[aria-current]{background:var(--bone);color:var(--ink)}.tx{max-width:68ch;line-height:1.7}.tx h2{font-size:18px;margin:22px 0 6px}.tx p,.tx li{color:#c9d6d5}@media(max-width:760px){.in{grid-template-columns:1fr}.in nav{display:flex;overflow-x:auto}.in nav a{white-space:nowrap}}</style>
+<!-- TEXTOS-MODELO: revisar com responsável legal/contador antes de divulgar. -->
+<div class="in"><nav id="nv" aria-label="Institucional"></nav><article class="tx" id="ct"></article></div>
+</main>
+<script>
+const {$,qs,url,CONTACT,R}=NC;
+const W=CONTACT.whatsapp?`<p><a class="btn" href="https://wa.me/${CONTACT.whatsapp}">Chamar no WhatsApp</a></p>`:'',I=CONTACT.instagram?`<p>Instagram: <a href="https://instagram.com/${CONTACT.instagram}" style="text-decoration:underline">@${CONTACT.instagram}</a></p>`:'',E=CONTACT.email?`<p>E-mail: ${CONTACT.email}</p>`:'';
+const PG={
+sobre:['Sobre a Natural Camouflage',`<p>A Natural Camouflage é uma marca brasileira de streetwear e gymwear criada em Bagé, RS. Nossa Collection Classic traz oversized tees pensadas para quem treina todo dia e prefere que o resultado fale por si.</p><p>Vista o que te camufla.</p>`],
+trocas:['Trocas e devoluções',`<h2>Direito de arrependimento</h2><p>Em compras online você pode desistir em até 7 dias corridos após o recebimento, conforme o Código de Defesa do Consumidor (art. 49).</p><h2>Troca por tamanho</h2><p>Para trocar de tamanho, entre em contato informando o número do pedido. A peça deve estar sem uso, com etiqueta e na embalagem original.</p><h2>Como solicitar</h2><p>Use a página de contato com o número do pedido (NC-...).</p>`],
+privacidade:['Política de privacidade',`<p>Coletamos apenas os dados necessários para processar seu pedido: nome, e-mail, CPF, endereço de entrega e dados do pagamento. Os dados do cartão são tratados diretamente pelo Mercado Pago e não passam pelos nossos servidores.</p><h2>Uso dos dados</h2><p>Usamos suas informações para emitir o pedido, calcular frete, confirmar o pagamento e entrar em contato sobre a entrega.</p><h2>Seus direitos (LGPD)</h2><p>Você pode solicitar acesso, correção ou exclusão dos seus dados pela página de contato.</p><h2>Dados neste aparelho</h2><p>Carrinho, favoritos e histórico de pedidos ficam salvos no seu navegador e podem ser apagados em Minha conta.</p>`],
+termos:['Termos de uso',`<p>Ao comprar na Natural Camouflage você concorda com estes termos. Os preços e a disponibilidade podem mudar sem aviso prévio. O valor final, incluindo frete e descontos, é confirmado no momento do pagamento.</p><h2>Pagamento</h2><p>Aceitamos Pix (com 5% de desconto) e cartão de crédito, processados pelo Mercado Pago.</p><h2>Prazo de entrega</h2><p>O prazo varia conforme a região e é informado após a postagem do pedido.</p>`],
+contato:['Contato',`<p>Fale com a gente sobre pedidos, trocas ou dúvidas.</p>${W}${I}${E}${W||I||E?'':'<p>Canais de atendimento em breve.</p>'}`]};
+const k=PG[qs('p')]?qs('p'):'sobre';
+$('#nv').innerHTML=Object.entries(PG).map(([id,[t]])=>`<a href="${url('institucional',{p:id})}"${id===k?' aria-current="page"':''}>${t.split(' ').slice(0,2).join(' ')}</a>`).join('');
+$('#ct').innerHTML=`<h1 class="ttl">${PG[k][0]}</h1>${PG[k][1]}`;document.title=PG[k][0]+' · Natural Camouflage';
+</script>
+</body></html>
