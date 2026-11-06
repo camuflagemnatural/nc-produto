@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Produto · Natural Camouflage</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/nc-core/css/core.css?v=2">
+<script src="/nc-core/js/core.js?v=2"></script></head><body>
+<main>
+<style>.pd{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:32px;align-items:start}.gal .big{background:#f7f7f9;border-radius:22px;aspect-ratio:512/900;overflow:hidden;max-height:80vh;margin:0 auto}.gal .big{position:relative;touch-action:pan-y}.gal .big img{width:100%;height:100%;object-fit:contain;-webkit-user-drag:none;user-select:none}.th{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}.th button{padding:0;border:2px solid transparent;border-radius:12px;overflow:hidden;background:#f7f7f9;aspect-ratio:512/900;opacity:.55;cursor:pointer}.th button[aria-pressed=true]{border-color:var(--bone);opacity:1}.th img{width:100%;height:100%;object-fit:contain}.inf{display:grid;gap:16px}.inf .pr{font:800 28px Unbounded;color:var(--teal)}.row{display:flex;gap:10px}.row .btn{flex:1}.ship{display:flex;gap:8px}.ship input{flex:1}@media(max-width:800px){.pd{grid-template-columns:1fr}}</style>
+<div id="app"></div>
+</main>
+<script>
+const {P,COLS,VIEWS,SIZES,soldOut,sizeOk,$,$$,brl,esc,qs,url,cart,fav,store,shipFor,toast,FREE_SHIPPING,PIX_DISCOUNT,R}=NC;
+const p=P[+qs('id')];
+if(!p){$('#app').innerHTML=`<div class="empty">Produto não encontrado.<br><a class="btn" href="${R.categorias}">Ver coleção</a></div>`}
+else{
+ document.title=p.name+' · Natural Camouflage';let s='M',k=0;
+ $('#app').innerHTML=`<div class="pd"><div class="gal"><div class="big"><img id="bi" src="${p.imgs[0]}" alt="${esc(p.name)}"></div><div class="th">${p.imgs.map((m,j)=>`<button type="button" data-k="${j}" aria-pressed="${j==0}" aria-label="${VIEWS[j]}"><img src="${m}" alt=""></button>`).join('')}</div></div>
+ <div class="inf"><div><p class="sub" style="margin:0">Collection ${COLS[p.col]} · Oversized Tee</p><h1 class="ttl">${esc(p.name)}</h1></div>
+ <div><div class="pr">${brl(p.price)}</div><small style="color:var(--mut)">ou ${brl(Math.round(p.price*(1-PIX_DISCOUNT)))} no Pix (${PIX_DISCOUNT*100}% off)</small></div>
+ <div><label>Tamanho</label><div class="sz" id="sz"></div><p id="so" hidden style="margin:10px 0 0;color:var(--mut);font-size:13px">Produto esgotado no momento.</p></div>
+ <div class="row"><button class="btn" id="add" type="button">Adicionar ao carrinho</button><button class="btn sec" id="fv" type="button" aria-pressed="${fav.has(p.id)}">${fav.has(p.id)?'♥ Favorito':'♡ Favoritar'}</button></div>
+ <button class="btn sec full" id="buy" type="button">Comprar agora</button>
+ <div class="card" style="padding:16px"><label for="cep">Calcular frete</label><div class="ship"><input id="cep" inputmode="numeric" maxlength="9" placeholder="00000-000" value="${esc(store.get('cep',''))}"><button class="btn sec" id="cc" type="button">Calcular</button></div><div id="fr" style="margin-top:8px;color:var(--mut);font-size:13px">Frete grátis acima de ${brl(FREE_SHIPPING)}.</div></div></div></div>`;
+ const show=n=>{k=(n+p.imgs.length)%p.imgs.length;$('#bi').src=p.imgs[k];$$('.th button').forEach((o,j)=>o.setAttribute('aria-pressed',j===k))};
+ $('.th').onclick=e=>{const b=e.target.closest('[data-k]');if(!b)return;show(+b.dataset.k)};
+ // arrastar a foto grande para o lado troca a imagem (mobile)
+ let x0=null,y0=null;const bg=$('.big');
+ bg.addEventListener('touchstart',e=>{x0=e.touches[0].clientX;y0=e.touches[0].clientY},{passive:true});
+ bg.addEventListener('touchend',e=>{if(x0===null)return;const dx=e.changedTouches[0].clientX-x0,dy=e.changedTouches[0].clientY-y0;x0=null;if(Math.abs(dx)>40&&Math.abs(dx)>Math.abs(dy)*1.5)show(k+(dx<0?1:-1))});
+ const paintStock=()=>{ // tamanhos sem estoque ficam desabilitados; produto todo esgotado trava os botões
+  if(!s||!sizeOk(p,s))s=SIZES.find(z=>sizeOk(p,z))||null;
+  $('#sz').innerHTML=SIZES.map(z=>`<button type="button" data-z="${z}" aria-pressed="${z===s}"${sizeOk(p,z)?'':' disabled title="Esgotado"'}>${z}</button>`).join('');
+  const out=soldOut(p)||!s;
+  $('#add').disabled=$('#buy').disabled=out;$('#add').textContent=out?'Esgotado':'Adicionar ao carrinho';$('#so').hidden=!out};
+ $('#sz').onclick=e=>{const b=e.target.closest('button');if(!b||b.disabled)return;s=b.dataset.z;$$('#sz button').forEach(o=>o.setAttribute('aria-pressed',o===b))};
+ paintStock();document.addEventListener('nc:stock',paintStock);
+ $('#add').onclick=()=>{if(!s)return;cart.add(p.id,s);toast(`${p.name} (${s}) no carrinho`)};
+ $('#buy').onclick=()=>{if(!s)return;cart.add(p.id,s);location.href=R.carrinho};
+ $('#fv').onclick=()=>{const on=fav.toggle(p.id);$('#fv').textContent=on?'♥ Favorito':'♡ Favoritar';$('#fv').setAttribute('aria-pressed',on)};
+ $('#cep').oninput=e=>{const v=e.target.value.replace(/\D/g,'').slice(0,8);e.target.value=v.length>5?v.slice(0,5)+'-'+v.slice(5):v};
+ $('#cc').onclick=()=>{const v=$('#cep').value,f=shipFor(v,p.price);if(f==null){$('#fr').textContent='Informe um CEP válido.';return}store.set('cep',v);$('#fr').textContent=`Frete estimado: ${brl(f)} (grátis acima de ${brl(FREE_SHIPPING)} em compras).`};
+}
+</script>
+</body></html>
